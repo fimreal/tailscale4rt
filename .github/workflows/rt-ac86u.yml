@@ -41,6 +41,12 @@ jobs:
           zip -Jr ./derper-${{ env.VERSION_LONG }}-ac86u.zip ./derper
           zip -Jr ./tailscale-${{ env.VERSION_LONG }}-ac86u-client.zip ./tailscale ./tailscaled
           ls -l
+      - uses: dev-drprasad/delete-tag-and-release@v0.2.0
+        with:
+          delete_release: true
+          tag_name: ${{ env.VERSION_LONG }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -48,9 +54,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ env.VERSION_LONG }}
-          release_name: Release ${{ env.VERSION_LONG }}
+          release_name: ${{ env.VERSION_LONG }}
           draft: false
-          prerelease: true
+          prerelease: false
       # if: ${{ github.ref != 'refs/heads/main' }}
       - name: Upload Release Assets
         id: upload-release-assets
@@ -59,4 +65,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           release_id: ${{ steps.create_release.outputs.id }}
-          assets_path: ./build/
+          assets_path: ./build/*.zip
