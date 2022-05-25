@@ -1,0 +1,59 @@
+name: ac86u
+
+on:
+  push:
+    tags: 
+      - 1.*
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: set up go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          repository: 'tailscale/tailscale'
+      - name: ac86u build cmd
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: arm
+          GOARM: 7
+        run: |
+          mkdir -p build dist
+          sed -i '/exit/d;$d' build_dist.sh
+          source build_dist.sh shellvars && go build -o ./build/ -trimpath -ldflags "-s -w -X tailscale.com/version.Long=${LONG} -X tailscale.com/version.Short=${SHORT} -X tailscale.com/version.GitCommit=${GIT_HASH}" ./cmd/...
+          ls -l ./build/
+
+      # publish release asset
+      - name: zip dist
+        run: |
+          cd ./build
+          zip -Jr ../dist/tailscale-ac86u.zip ./tailscale
+          zip -Jr ../dist/tailscaled-ac86u.zip ./tailscaled
+          zip -Jr ../dist/derper-ac86u.zip ./tailscaled
+          zip -Jr ../dist/tailscale-ac86u-client.zip ./tailscale ./tailscaled
+          zip -Jr ../dist/tailscale-ac86u-everything.zip ./*
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: true
+        if: ${{ github.ref != 'refs/heads/main' }}
+      - name: Upload Release Assets
+        id: upload-release-assets
+        uses: dwenegar/upload-release-assets@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          release_id: ${{ steps.create_release.outputs.id }}
+          assets_path: ./dist/
