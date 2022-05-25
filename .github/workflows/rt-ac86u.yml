@@ -2,8 +2,8 @@ name: ac86u
 
 on:
   push:
-    tags: 
-      - 1.*
+  # tags: 
+  #   - 1.*
 
 jobs:
   build:
@@ -17,6 +17,9 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: 'tailscale/tailscale'
+      - name: set env
+        run: |
+          ./build_dist.sh shellvars | tee -a $GITHUB_ENV
       - name: ac86u build cmd
         env:
           CGO_ENABLED: 0
@@ -24,31 +27,31 @@ jobs:
           GOARCH: arm
           GOARM: 7
         run: |
-          mkdir -p build dist
-          sed -i '/exit/d;$d' build_dist.sh
-          source build_dist.sh shellvars && go build -o ./build/ -trimpath -ldflags "-s -w -X tailscale.com/version.Long=${LONG} -X tailscale.com/version.Short=${SHORT} -X tailscale.com/version.GitCommit=${GIT_HASH}" ./cmd/...
+          mkdir -p build
+          go build -o ./build/ -trimpath -ldflags "-s -w -X tailscale.com/version.Long=${{ env.VERSION_LONG }} -X tailscale.com/version.Short=${{ env.VERSION_SHORT }} -X tailscale.com/version.GitCommit=${{ env.VERSION_GIT_HASH }}" ./cmd/...
           ls -l ./build/
 
       # publish release asset
       - name: zip dist
         run: |
           cd ./build
-          zip -Jr ../dist/tailscale-ac86u.zip ./tailscale
-          zip -Jr ../dist/tailscaled-ac86u.zip ./tailscaled
-          zip -Jr ../dist/derper-ac86u.zip ./tailscaled
-          zip -Jr ../dist/tailscale-ac86u-client.zip ./tailscale ./tailscaled
-          zip -Jr ../dist/tailscale-ac86u-everything.zip ./*
+          zip -Jr ./tailscale-${{ env.VERSION_LONG }}-ac86u-everything.zip ./*
+          zip -Jr ./tailscale-${{ env.VERSION_LONG }}-ac86u.zip ./tailscale
+          zip -Jr ./tailscaled-${{ env.VERSION_LONG }}-ac86u.zip ./tailscaled
+          zip -Jr ./derper-${{ env.VERSION_LONG }}-ac86u.zip ./derper
+          zip -Jr ./tailscale-${{ env.VERSION_LONG }}-ac86u-client.zip ./tailscale ./tailscaled
+          ls -l
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          tag_name: ${{ env.VERSION_LONG }}
+          release_name: Release ${{ env.VERSION_LONG }}
           draft: false
           prerelease: true
-        if: ${{ github.ref != 'refs/heads/main' }}
+      # if: ${{ github.ref != 'refs/heads/main' }}
       - name: Upload Release Assets
         id: upload-release-assets
         uses: dwenegar/upload-release-assets@v1
@@ -56,4 +59,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           release_id: ${{ steps.create_release.outputs.id }}
-          assets_path: ./dist/
+          assets_path: ./build/
