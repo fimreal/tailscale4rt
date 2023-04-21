@@ -59,7 +59,7 @@ jobs:
           zip -Jr ./derper-${{ env.VERSION_LONG }}-macosarm.zip ./derper
           zip -Jr ./tailscale-${{ env.VERSION_LONG }}-macosarm-client.zip ./tailscale ./tailscaled
           ls -l
-      - uses: dev-drprasad/delete-tag-and-release@v0.2.0
+      - uses: dev-drprasad/delete-tag-and-release@v0.2.1
         with:
           delete_release: true
           tag_name: ${{ env.VERSION_LONG }}
