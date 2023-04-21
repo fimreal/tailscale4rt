@@ -27,12 +27,21 @@ jobs:
           GOARCH: arm
           GOARM: 7
         run: |
-          mkdir -p build
-          go build -o ./build/ -trimpath -ldflags "-s -w -X tailscale.com/version.Long=${{ env.VERSION_LONG }} -X tailscale.com/version.Short=${{ env.VERSION_SHORT }} -X tailscale.com/version.GitCommit=${{ env.VERSION_GIT_HASH }}" ./cmd/...
-          ls -l ./build/
+          mkdir -p ac86u
+          go build -o ./ac86u/ -trimpath -ldflags "-s -w -X tailscale.com/version.Long=${{ env.VERSION_LONG }} -X tailscale.com/version.Short=${{ env.VERSION_SHORT }} -X tailscale.com/version.GitCommit=${{ env.VERSION_GIT_HASH }}" ./cmd/...
+          ls -l ./ac86u/
+      - name: macos arm build cmd
+        env:
+          CGO_ENABLED: 0
+          GOOS: darwin
+          GOARCH: arm64
+        run: |
+          mkdir -p macosarm
+          go build -o ./macosarm/ -trimpath -ldflags "-s -w -X tailscale.com/version.Long=${{ env.VERSION_LONG }} -X tailscale.com/version.Short=${{ env.VERSION_SHORT }} -X tailscale.com/version.GitCommit=${{ env.VERSION_GIT_HASH }}" ./cmd/...
+          ls -l ./macosarm/
 
       # publish release asset
-      - name: zip dist
+      - name: zip ac86u dist
         run: |
           cd ./build
           zip -Jr ./tailscale-${{ env.VERSION_LONG }}-ac86u-everything.zip ./*
@@ -40,6 +49,15 @@ jobs:
           zip -Jr ./tailscaled-${{ env.VERSION_LONG }}-ac86u.zip ./tailscaled
           zip -Jr ./derper-${{ env.VERSION_LONG }}-ac86u.zip ./derper
           zip -Jr ./tailscale-${{ env.VERSION_LONG }}-ac86u-client.zip ./tailscale ./tailscaled
+          ls -l
+      - name: zip macosarm dist
+        run: |
+          cd ./macosarm
+          zip -Jr ./tailscale-${{ env.VERSION_LONG }}-macosarm-everything.zip ./*
+          zip -Jr ./tailscale-${{ env.VERSION_LONG }}-macosarm.zip ./tailscale
+          zip -Jr ./tailscaled-${{ env.VERSION_LONG }}-macosarm.zip ./tailscaled
+          zip -Jr ./derper-${{ env.VERSION_LONG }}-macosarm.zip ./derper
+          zip -Jr ./tailscale-${{ env.VERSION_LONG }}-macosarm-client.zip ./tailscale ./tailscaled
           ls -l
       - uses: dev-drprasad/delete-tag-and-release@v0.2.0
         with:
@@ -65,4 +83,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           release_id: ${{ steps.create_release.outputs.id }}
-          assets_path: ./build/*.zip
+          assets_path: |
+            ./ac86u/*.zip
+            ./macosarm/*.zip
